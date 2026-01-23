@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   //BASE_URL: "http://localhost:3001",
-  BASE_URL: "https://backend-trivia-prqv.onrender.com",
+  BASE_URL: "https://backend-trivia-prqv.onrender.com", 
   TIMEOUT: 30000,
   AUTH_TIMEOUT: 15000,
   RESET_TIMEOUT: 45000,

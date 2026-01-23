@@ -89,7 +89,10 @@ const normalizeActivacionForApi = (value?: string): 'manual' | 'programada' =>
   value === 'programada' ? 'programada' : 'manual';
 
 const buildQuestionPayloadForApi = (question: Pregunta): TriviaQuestionPayload => {
-  const markedIndex = question.opciones.findIndex((o) => o.esCorrecta);
+  // Filtrar opciones vacías antes de procesar
+  const validOptions = (question.opciones || []).filter((o) => o.texto && o.texto.trim().length > 0);
+  
+  const markedIndex = validOptions.findIndex((o) => o.esCorrecta);
   const singleCorrectIndex =
     markedIndex >= 0
       ? markedIndex
@@ -100,10 +103,10 @@ const buildQuestionPayloadForApi = (question: Pregunta): TriviaQuestionPayload =
   // Si la imagen es un File, NO incluirla en el payload (el backend la procesará desde question_images)
   // Solo incluir imagen si es una URL string
   const payload: TriviaQuestionPayload = {
-    texto: question.texto,
+    texto: question.texto.trim(),
     puntos: question.puntos,
-    opciones: question.opciones.map((o, idx) => ({
-      texto: o.texto,
+    opciones: validOptions.map((o, idx) => ({
+      texto: o.texto.trim(),
       esCorrecta: idx === singleCorrectIndex,
     })),
   };
@@ -125,7 +128,19 @@ const buildTriviaPayloadForApi = (
   const activacionValue = normalizeActivacionForApi(base.activacion);
   const fechaActivacionValue =
     activacionValue === 'programada' && base.fechaActivacion ? base.fechaActivacion : undefined;
-  const sanitizedQuestions = preguntasList.map(buildQuestionPayloadForApi);
+  
+  // Filtrar preguntas vacías o incompletas antes de construir el payload
+  const validQuestions = preguntasList.filter((q) => {
+    // Debe tener texto no vacío
+    const hasText = q.texto && q.texto.trim().length > 0;
+    // Debe tener al menos 2 opciones con texto
+    const validOptions = (q.opciones || []).filter((o) => o.texto && o.texto.trim().length > 0);
+    const hasEnoughOptions = validOptions.length >= 2;
+    
+    return hasText && hasEnoughOptions;
+  });
+  
+  const sanitizedQuestions = validQuestions.map(buildQuestionPayloadForApi);
 
   const payload: TriviaUpsertPayload = {
     nombre: nombreValue,
@@ -351,7 +366,13 @@ const TriviasPage: React.FC = () => {
     
     const activacion = t?.activacion ?? t?.activation_type ?? t?.activation ?? 'manual';
     const fechaActivacion = t?.fechaActivacion ?? t?.fecha_activacion ?? t?.activationDate ?? t?.scheduled_activation_date ?? undefined;
-    const duracion = t?.duracion ?? t?.duration_minutes ?? t?.duration ?? 0;
+    // Leer duración de múltiples campos posibles del backend
+    const duracion = toNumber(
+      t?.duracion ?? 
+      t?.duration_minutes ?? 
+      t?.duration ??
+      t?.duracion_minutos
+    ) ?? 0;
     const preguntasSrc = t?.preguntas ?? t?.questions ?? [];
     const preguntas = Array.isArray(preguntasSrc)
       ? preguntasSrc.map((q: any) => {
@@ -408,8 +429,9 @@ const TriviasPage: React.FC = () => {
           };
         })
       : [];
-    const calculatedAverageQuestionTime = computeAverageQuestionTime(preguntas);
+    // Priorizar number_questions del backend (es el valor real)
     const preguntasCountFromPayload =
+      t?.number_questions ??  // Campo del backend que tiene el número real
       t?.totalPreguntas ??
       t?.preguntasTotales ??
       t?.preguntas_total ??
@@ -420,15 +442,36 @@ const TriviasPage: React.FC = () => {
       t?.total_questions ??
       t?.totalQuestions ??
       t?.questionCount;
+    // Usar el valor del backend si existe, de lo contrario contar las preguntas del array
+    // NOTA: El array puede tener menos preguntas (el backend solo envía 5 en findAll)
     const preguntasCount =
       toNumber(preguntasCountFromPayload) ??
-      (Array.isArray(preguntasSrc) ? preguntasSrc.length : 0);
-    const tiempoPorPregunta = toNumber(
-      t?.time_per_question ??
-        t?.tiempoPorPregunta ??
-        t?.tiempo_por_pregunta ??
-        t?.timePerQuestion
-    );
+      (Array.isArray(preguntasSrc) && preguntasSrc.length > 0 ? preguntasSrc.length : 0);
+    
+    // Calcular tiempo por pregunta basándose en la duración total y el número de preguntas
+    // Siempre calcular desde la duración total si tenemos ambos valores, ya que es más preciso
+    let tiempoPorPregunta: number | undefined;
+    
+    // Si tenemos duración y número de preguntas, calcular desde ahí (más preciso)
+    if (duracion > 0 && preguntasCount > 0) {
+      // Convertir minutos a segundos y dividir entre el número de preguntas
+      const totalSeconds = duracion * 60;
+      tiempoPorPregunta = Math.max(1, Math.floor(totalSeconds / preguntasCount));
+    } else {
+      // Si no podemos calcular desde la duración, intentar obtener del backend
+      tiempoPorPregunta = toNumber(
+        t?.time_per_question ??
+          t?.tiempoPorPregunta ??
+          t?.tiempo_por_pregunta ??
+          t?.timePerQuestion
+      );
+      
+      // Si tampoco viene del backend y tenemos preguntas, calcular promedio
+      if (!tiempoPorPregunta && preguntas.length > 0) {
+        const calculatedAverageQuestionTime = computeAverageQuestionTime(preguntas);
+        tiempoPorPregunta = calculatedAverageQuestionTime;
+      }
+    }
     const puntosFromPayload =
       t?.puntos ??
       t?.totalPuntos ??
@@ -448,7 +491,7 @@ const TriviasPage: React.FC = () => {
       dificultad,
       puntos,
       totalPreguntas: preguntasCount > 0 ? preguntasCount : preguntas.length,
-      tiempoPorPregunta: tiempoPorPregunta ?? calculatedAverageQuestionTime ?? undefined,
+      tiempoPorPregunta: tiempoPorPregunta ?? undefined,
       imagen: normalizedTriviaImage,
       estado,
       activacion,
@@ -703,6 +746,19 @@ const TriviasPage: React.FC = () => {
   const handleSaveTrivia = async (triviaData: TriviaForm, preguntas: Pregunta[], premios: Premio[], participantes: Participante[]) => {
     // El backend espera la categoría por NOMBRE y la resuelve a ID
     const categoriaValue = (triviaData.categoria ?? '').toString();
+
+    // Validar que haya preguntas válidas antes de construir el payload
+    const validQuestions = preguntas.filter((q) => {
+      const hasText = q.texto && q.texto.trim().length > 0;
+      const validOptions = (q.opciones || []).filter((o) => o.texto && o.texto.trim().length > 0);
+      const hasEnoughOptions = validOptions.length >= 2;
+      return hasText && hasEnoughOptions;
+    });
+
+    if (validQuestions.length === 0) {
+      showError('Error', 'Debe agregar al menos una pregunta válida con texto y al menos 2 opciones completas');
+      return;
+    }
 
     const payload = buildTriviaPayloadForApi(
       {

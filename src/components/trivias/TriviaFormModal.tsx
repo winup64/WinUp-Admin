@@ -279,6 +279,27 @@ const TriviaFormModal: React.FC<TriviaFormModalProps> = ({ isOpen, onClose, onSa
       
       return newData;
     });
+    
+    // Si cambia la duración general, distribuir el tiempo igualitariamente entre todas las preguntas
+    if (field === 'duracion' && typeof value === 'number' && value > 0) {
+      setPreguntas(prevPreguntas => {
+        // Solo distribuir si hay preguntas
+        if (prevPreguntas.length === 0) {
+          return prevPreguntas;
+        }
+        
+        // Convertir minutos a segundos
+        const totalSeconds = value * 60;
+        // Calcular tiempo por pregunta (distribución igualitaria)
+        const tiempoPorPregunta = Math.max(1, Math.floor(totalSeconds / prevPreguntas.length));
+        
+        // Actualizar el tiempo de todas las preguntas
+        return prevPreguntas.map(p => ({
+          ...p,
+          tiempoSegundos: tiempoPorPregunta
+        }));
+      });
+    }
   };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
