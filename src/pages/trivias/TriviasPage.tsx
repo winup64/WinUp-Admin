@@ -69,6 +69,7 @@ type TriviaPayloadSource = {
   dificultad?: string;
   estado?: string;
   duracion?: number;
+  tiempoPorPregunta?: number;
   activacion?: string;
   fechaActivacion?: string;
   imagen?: File | string;
@@ -110,6 +111,12 @@ const buildQuestionPayloadForApi = (question: Pregunta): TriviaQuestionPayload =
       esCorrecta: idx === singleCorrectIndex,
     })),
   };
+
+  // Incluir tiempo por pregunta (redistribuido al cambiar duración) para persistir en BD
+  const tiempoSeg = question.tiempoSegundos ?? (question as any).time_seconds ?? DEFAULT_QUESTION_TIME;
+  if (typeof tiempoSeg === 'number' && tiempoSeg > 0) {
+    payload.tiempoSegundos = tiempoSeg;
+  }
 
   // Solo agregar imagen si es una URL string (no File)
   if (typeof question.imagen === 'string' && question.imagen.trim().length > 0) {
@@ -156,6 +163,10 @@ const buildTriviaPayloadForApi = (
 
   if (typeof base.duracion === 'number' && Number.isFinite(base.duracion)) {
     payload.duracion = base.duracion;
+  }
+
+  if (typeof base.tiempoPorPregunta === 'number' && base.tiempoPorPregunta > 0) {
+    payload.tiempoPorPregunta = base.tiempoPorPregunta;
   }
 
   if (typeof base.imagen === 'string') {
@@ -767,6 +778,7 @@ const TriviasPage: React.FC = () => {
         dificultad: triviaData.dificultad,
         estado: triviaData.estado,
         duracion: triviaData.duracion,
+        tiempoPorPregunta: triviaData.tiempoPorPregunta,
         activacion: triviaData.activacion,
         fechaActivacion: triviaData.fechaActivacion,
         imagen: triviaData.imagen,
@@ -891,6 +903,7 @@ const TriviasPage: React.FC = () => {
         dificultad: selectedTrivia.dificultad,
         estado: selectedTrivia.estado,
         duracion: selectedTrivia.duracion,
+        tiempoPorPregunta: selectedTrivia.tiempoPorPregunta,
         activacion: selectedTrivia.activacion,
         fechaActivacion: selectedTrivia.fechaActivacion,
         imagen: selectedTrivia.imagen,

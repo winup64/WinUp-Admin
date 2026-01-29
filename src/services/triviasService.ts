@@ -26,6 +26,7 @@ export interface TriviaOptionPayload {
 export interface TriviaQuestionPayload {
   texto: string;
   puntos: number;
+  tiempoSegundos?: number;
   imagen?: string;
   opciones: TriviaOptionPayload[];
 }
@@ -53,6 +54,7 @@ export interface TriviaUpsertPayload {
   estado: 'activa' | 'inactiva';
   imagen?: string;
   duracion?: number;
+  tiempoPorPregunta?: number;
   activacion?: 'manual' | 'programada';
   fechaActivacion?: string;
   preguntas?: TriviaQuestionPayload[];
