@@ -353,7 +353,7 @@ class SurveysService {
     }
   }
 
-  // Crear nueva encuesta
+  // Crear nueva encuesta (siempre multipart para soportar imágenes)
   static async createSurvey(payload: SurveyCreateRequestPayload): Promise<ApiResponse<Survey>> {
     try {
       const url = API_ENDPOINTS.SURVEYS_ADMIN.CREATE;
@@ -363,7 +363,6 @@ class SurveysService {
       });
       const raw: any = response.data;
       const data: Survey = raw?.data ?? raw;
-      
       return {
         status: typeof raw?.status === 'number' ? raw.status : 201,
         message: raw?.message || '',

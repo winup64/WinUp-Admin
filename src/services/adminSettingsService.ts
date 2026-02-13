@@ -16,7 +16,7 @@ export interface AdminSettings {
 }
 
 export type UpdateAdminSettingsRequest = Partial<Pick<AdminSettings,
-  'admin_name' | 'admin_phone' | 'admin_email' | 'admin_whatsapp' | 'business_hours' | 'maintenance_mode'
+  'admin_name' | 'admin_phone' | 'admin_email' | 'admin_whatsapp' | 'business_hours' | 'demo_trial_days' | 'maintenance_mode'
 >> & { admin_name: string };
 
 export async function getAdminSettings(): Promise<AdminSettings | null> {
