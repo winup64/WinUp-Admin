@@ -218,6 +218,7 @@ export function mapProductToDbPayload(product: any): any {
         fd.append('start_date', String(product?.registrationStartDate || product?.startDate || new Date().toISOString()));
         fd.append('end_date', String(product?.registrationEndDate || product?.drawDate || product?.endDate || new Date().toISOString()));
         if (product?.product) fd.append('product', product.product);
+        if (product?.productValue != null) fd.append('product_value', String(product.productValue));
         if (product?.pointsRequired != null) fd.append('points_required', String(product.pointsRequired));
         if (product?.maxParticipants != null) fd.append('max_participants', String(product.maxParticipants));
         if (product?.registrationStartDate) fd.append('registration_start_date', String(product.registrationStartDate));
@@ -233,6 +234,7 @@ export function mapProductToDbPayload(product: any): any {
         start_date: product?.registrationStartDate || product?.startDate || new Date().toISOString(),
         end_date: product?.registrationEndDate || product?.drawDate || product?.endDate || new Date().toISOString(),
         product: product?.product,
+        product_value: product?.productValue,
         points_required: product?.pointsRequired,
         max_participants: product?.maxParticipants,
         registration_start_date: product?.registrationStartDate,

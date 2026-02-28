@@ -151,7 +151,7 @@ const CreateProductRaffleModal: React.FC<CreateProductRaffleModalProps> = ({
       name: formData.name.trim(),
       description: formData.description.trim(),
       product: formData.product.trim(),
-      productValue: 0, // Campo requerido por el tipo pero no se usa
+      productValue: 0.01, // Valor mínimo requerido por validación del backend (aunque no se usa en sorteos de producto)
       pointsRequired: typeof formData.pointsRequired === 'number' ? formData.pointsRequired : Number(formData.pointsRequired || 0),
       maxParticipants: typeof formData.maxParticipants === 'number' ? formData.maxParticipants : Number(formData.maxParticipants || 100),
       currentParticipants: 0,

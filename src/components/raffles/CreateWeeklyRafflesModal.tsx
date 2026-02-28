@@ -245,6 +245,10 @@ const CreateWeeklyRafflesModal: React.FC<CreateWeeklyRafflesModalProps> = ({
       const regEndIso = toISOFromDate(picked.regEndDate, '23:59') || new Date(saturdayDate.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString();
       const drawIso = toISOFromDate(picked.drawDate, '00:00') || saturdayDate.toISOString();
       
+      // 🚨 AJUSTE CRÍTICO: Asegurar que maxParticipants >= winnersCount
+      const adjustedMaxParticipants = Math.max(weekParticipants, winnersCount);
+      const adjustedWinnersCount = Math.min(winnersCount, weekParticipants);
+      
       const weeklyRaffle: any = {
         id: `weekly-${selectedMonthly.id}-${week}`,
         name: `${selectedMonthly.name} - Semana ${week}`,
@@ -259,15 +263,15 @@ const CreateWeeklyRafflesModal: React.FC<CreateWeeklyRafflesModalProps> = ({
         fund: weekFund,
         totalFund: weekFund,
         pointsRequired: weekPointsRequired,
-        maxParticipants: weekParticipants,
+        maxParticipants: adjustedMaxParticipants,
         currentParticipants: 0,
-        winnersCount: winnersCount,
+        winnersCount: adjustedWinnersCount,
         prizeDistribution: {
           firstPlace: top1,
           secondPlace: top2,
           thirdPlace: top3,
-          ranges: winnersCount > 3 ? [
-            { start: 4, end: winnersCount, percentage: Number(perPersonPct.toFixed(4)) }
+          ranges: adjustedWinnersCount > 3 ? [
+            { start: 4, end: adjustedWinnersCount, percentage: Number(perPersonPct.toFixed(4)) }
           ] : [],
         },
         drawDate: drawIso,

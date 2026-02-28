@@ -399,6 +399,11 @@ const RafflesPage: React.FC = () => {
         const weekNum = Math.max(1, Math.min(5, Math.floor(Number(w.weekNumber ?? w.week ?? 0))));
         const monthlyIdToSend = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) ? id : undefined;
 
+        // 🚨 AJUSTE CRÍTICO: Asegurar que max_participants >= winners_count
+        const rawMaxParticipants = Math.max(1, Math.floor(Number(w.maxParticipants ?? 0)));
+        const adjustedWinnersCount = Math.min(wc, rawMaxParticipants);
+        const adjustedMaxParticipants = Math.max(rawMaxParticipants, adjustedWinnersCount);
+
         const payload: any = {
           raffle_type: 'weekly' as const,
           name: w.name,
@@ -410,21 +415,21 @@ const RafflesPage: React.FC = () => {
           year: w.year,
           monthly_raffle_id: monthlyIdToSend(w.monthlyRaffleId),
           fund: w.totalFund ?? w.fund,
-          max_participants: Math.max(1, Math.floor(Number(w.maxParticipants ?? 0))),
+          max_participants: adjustedMaxParticipants,
           registration_start_date: toIso(w.registrationStartDate || w.startDate),
           registration_end_date: toIso(w.registrationEndDate || w.endDate),
           draw_date: toIso(w.drawDate),
           is_registration_open: w.isRegistrationOpen,
           points_required: (w as any)?.pointsRequired ?? 0,
-          winners_count: wc,
+          winners_count: adjustedWinnersCount,
           prize_pct_first: first,
           prize_pct_second: second,
           prize_pct_third: third,
-          prize_distribution: wc > 3 ? {
+          prize_distribution: adjustedWinnersCount > 3 ? {
             ranges: [
-              { start: 4, end: 3 + wc, percentage: perOther }
+              { start: 4, end: 3 + adjustedWinnersCount, percentage: perOther }
             ]
-          } : undefined,
+          } : { ranges: [] }, // 🚨 Enviar objeto vacío en lugar de undefined
         };
         // Adjuntar imagen si viene desde el modal (activará FormData en el servicio)
         if ((w as any).imageFile instanceof File) {
@@ -437,9 +442,14 @@ const RafflesPage: React.FC = () => {
             await createRaffleMutation.mutateAsync(payload as any);
             done = true;
             break;
-          } catch (e) {
-            if (attempt < 3) {
+          } catch (e: any) {
+            // Solo reintentar en errores de red o servidor (5xx), no en errores de validación (4xx)
+            const isRetryable = !e?.response?.status || e?.response?.status >= 500;
+            if (attempt < 3 && isRetryable) {
               await new Promise((r) => setTimeout(r, 400 * attempt));
+            } else {
+              // Si es un error de validación (4xx) o último intento, lanzar el error
+              throw e;
             }
           }
         }
