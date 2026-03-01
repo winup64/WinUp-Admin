@@ -56,30 +56,23 @@ const NotificationsPage: React.FC = () => {
   // Extraer datos de la respuesta
   const notifications = useMemo(() => {
     if (!notificationsResponse) {
-      console.log('No notificationsResponse');
       return [];
     }
     
-    console.log('notificationsResponse:', notificationsResponse);
-    
     if (!notificationsResponse.data) {
-      console.log('No data in notificationsResponse');
       return [];
     }
     
     const data = notificationsResponse.data;
     
     if (Array.isArray(data)) {
-      console.log('Notifications array length:', data.length);
       return data;
     }
     
     if (data && typeof data === 'object') {
-      console.log('Single notification object');
       return [data];
     }
     
-    console.log('Unknown data format:', data);
     return [];
   }, [notificationsResponse]);
 

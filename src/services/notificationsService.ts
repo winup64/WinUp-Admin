@@ -65,11 +65,7 @@ const mapToBackend = (notification: Partial<Notification>): CreateNotificationDt
 };
 
 const mapFromBackend = (backendNotification: any): Notification => {
-  // Log para debug
-  console.log('Mapping notification from backend:', backendNotification);
-  
   if (!backendNotification) {
-    console.error('Backend notification is null or undefined');
     throw new Error('Invalid notification data from backend');
   }
   
@@ -100,7 +96,6 @@ const mapFromBackend = (backendNotification: any): Notification => {
                undefined,
   };
   
-  console.log('Mapped notification:', mapped);
   return mapped;
 };
 
@@ -111,9 +106,6 @@ export const notificationsService = {
       const response = await api.get(API_ENDPOINTS.NOTIFICATIONS_ADMIN.LIST, {
         params: filters,
       });
-      
-      // Log para debug
-      console.log('Notifications API Response:', response.data);
       
       // Manejar diferentes estructuras de respuesta
       const responseData = response.data;

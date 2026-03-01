@@ -14,6 +14,7 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   XMarkIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
