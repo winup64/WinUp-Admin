@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PlusIcon, BellIcon, PencilIcon, TrashIcon, XMarkIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BellIcon, TrashIcon, XMarkIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { notificationsService, Notification } from '../../services/notificationsService';
 import { 
   useNotificationsList, 
   useCreateNotification, 
-  useUpdateNotification, 
   useDeleteNotification 
 } from '../../hooks/useNotifications';
 
@@ -50,7 +49,6 @@ const NotificationsPage: React.FC = () => {
 
   // Mutations
   const createMutation = useCreateNotification();
-  const updateMutation = useUpdateNotification();
   const deleteMutation = useDeleteNotification();
 
   // Extraer datos de la respuesta
@@ -79,10 +77,8 @@ const NotificationsPage: React.FC = () => {
   const totalPages = notificationsResponse?.pagination?.totalPages || 0;
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingNotification, setDeletingNotification] = useState<Notification | null>(null);
-  const [editingNotification, setEditingNotification] = useState<Notification | null>(null);
   const [newNotification, setNewNotification] = useState({
     title: '',
     message: '',
@@ -91,11 +87,6 @@ const NotificationsPage: React.FC = () => {
     scheduledDate: '',
     targetAudience: 'all' as 'all' | 'premium' | 'new_users' | 'inactive_users',
   });
-
-  const handleEditNotification = (notification: Notification) => {
-    setEditingNotification(notification);
-    setShowEditModal(true);
-  };
 
   const openDeleteModal = (notification: Notification) => {
     setDeletingNotification(notification);
@@ -128,7 +119,6 @@ const NotificationsPage: React.FC = () => {
         message: newNotification.message,
         type: newNotification.type,
         isActive: newNotification.isActive,
-        scheduledDate: newNotification.scheduledDate || undefined,
         targetAudience: newNotification.targetAudience,
       });
 
@@ -145,35 +135,6 @@ const NotificationsPage: React.FC = () => {
       alert('Notificación creada exitosamente');
     } catch (err: any) {
       alert(err.message || 'Error al crear la notificación');
-    }
-  };
-
-  const handleUpdateNotification = async () => {
-    if (!editingNotification || !editingNotification.id) return;
-
-    if (!editingNotification.title || !editingNotification.message) {
-      alert('Por favor completa el título y mensaje');
-      return;
-    }
-
-    try {
-      await updateMutation.mutateAsync({
-        id: editingNotification.id,
-        data: {
-          title: editingNotification.title,
-          message: editingNotification.message,
-          type: editingNotification.type,
-          isActive: editingNotification.isActive,
-          scheduledDate: editingNotification.scheduledDate,
-          targetAudience: editingNotification.targetAudience,
-        }
-      });
-
-      setShowEditModal(false);
-      setEditingNotification(null);
-      alert('Notificación actualizada exitosamente');
-    } catch (err: any) {
-      alert(err.message || 'Error al actualizar la notificación');
     }
   };
 
@@ -353,7 +314,7 @@ const NotificationsPage: React.FC = () => {
             </div>
             <p className="text-gray-600 mb-4 line-clamp-3">{notification.message}</p>
             
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500 ">
                 {getTargetAudienceLabel(notification.targetAudience || 'all')}
               </span>
@@ -362,21 +323,8 @@ const NotificationsPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex justify-between items-center">
-              {notification.scheduledDate && (
-                <span className="text-xs text-gray-400">
-                  {new Date(notification.scheduledDate).toLocaleDateString('es-ES')}
-                </span>
-              )}
+            <div className="flex justify-end items-center mt-4">
               <div className="flex space-x-2">
-                <button 
-                  onClick={() => handleEditNotification(notification)}
-                  className="text-warning-600 hover:text-warning-900 text-sm flex items-center"
-                  title="Editar"
-                >
-                  <PencilIcon className="h-4 w-4 mr-1" />
-                  Editar
-                </button>
                 <button 
                   onClick={() => openDeleteModal(notification)}
                   className="text-danger-600 hover:text-danger-900 text-sm flex items-center"
@@ -393,24 +341,6 @@ const NotificationsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Debug info - Solo en desarrollo */}
-      {process.env.NODE_ENV === 'development' && !loading && (
-        <div className="mt-4 p-4 bg-gray-100 rounded text-xs">
-          <strong>Debug Info:</strong>
-          <div>Total notifications: {notifications.length}</div>
-          <div>Current page: {currentPage}</div>
-          <div>Total pages: {totalPages}</div>
-          <div>Has data: {notificationsResponse?.data ? 'Yes' : 'No'}</div>
-          {notificationsResponse && (
-            <details className="mt-2">
-              <summary className="cursor-pointer">Response data</summary>
-              <pre className="mt-2 overflow-auto max-h-40">
-                {JSON.stringify(notificationsResponse, null, 2)}
-              </pre>
-            </details>
-          )}
-        </div>
-      )}
 
       {/* Modal de creación */}
       {showCreateModal && (
@@ -475,15 +405,6 @@ const NotificationsPage: React.FC = () => {
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Fecha y Hora Programada (Opcional)</label>
-                  <input
-                    type="datetime-local"
-                    value={newNotification.scheduledDate}
-                    onChange={(e) => setNewNotification({ ...newNotification, scheduledDate: e.target.value })}
-                    className="input-field mt-1"
-                  />
-                </div>
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -514,117 +435,6 @@ const NotificationsPage: React.FC = () => {
                   <button
                     onClick={() => setShowCreateModal(false)}
                     disabled={createMutation.isPending}
-                    className="btn-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de edición */}
-      {showEditModal && editingNotification && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Editar Notificación</h3>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Título</label>
-                  <input
-                    type="text"
-                    value={editingNotification.title}
-                    onChange={(e) => setEditingNotification({ ...editingNotification, title: e.target.value })}
-                    className="input-field mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Mensaje</label>
-                  <textarea
-                    value={editingNotification.message}
-                    onChange={(e) => setEditingNotification({ ...editingNotification, message: e.target.value })}
-                    className="input-field mt-1"
-                    rows={4}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                    <select
-                      value={editingNotification.type}
-                      onChange={(e) => setEditingNotification({ ...editingNotification, type: e.target.value as any })}
-                      className="input-field mt-1"
-                    >
-                      <option value="promotional">Promocional</option>
-                      <option value="winner">Ganador</option>
-                      <option value="system">Sistema</option>
-                      <option value="reminder">Recordatorio</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Audiencia</label>
-                    <select
-                      value={editingNotification.targetAudience || 'all'}
-                      onChange={(e) => setEditingNotification({ ...editingNotification, targetAudience: e.target.value as any })}
-                      className="input-field mt-1"
-                    >
-                      <option value="all">Todos los usuarios</option>
-                      <option value="premium">Usuarios Premium</option>
-                      <option value="new_users">Usuarios Nuevos</option>
-                      <option value="inactive_users">Usuarios Inactivos</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Fecha y Hora Programada (Opcional)</label>
-                  <input
-                    type="datetime-local"
-                    value={editingNotification.scheduledDate || ''}
-                    onChange={(e) => setEditingNotification({ ...editingNotification, scheduledDate: e.target.value })}
-                    className="input-field mt-1"
-                  />
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="editIsActive"
-                    checked={editingNotification.isActive}
-                    onChange={(e) => setEditingNotification({ ...editingNotification, isActive: e.target.checked })}
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="editIsActive" className="ml-2 block text-sm text-gray-700">
-                    Notificación Activa
-                  </label>
-                </div>
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    onClick={handleUpdateNotification}
-                    disabled={updateMutation.isPending}
-                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {updateMutation.isPending ? (
-                      <span className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                        Actualizando...
-                      </span>
-                    ) : (
-                      'Actualizar'
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowEditModal(false)}
-                    disabled={updateMutation.isPending}
                     className="btn-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancelar

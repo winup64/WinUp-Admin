@@ -211,7 +211,7 @@ const RafflesPage: React.FC = () => {
           currentParticipants: Number(w.current_participants ?? 0),
           participants: [],
           winners: [],
-          prizeDistribution: { specificPositions: { firstPlace: 30, secondPlace: 20, thirdPlace: 15 }, prizeRanges: [] },
+          prizeDistribution: { specificPositions: { firstPlace: 50, secondPlace: 30, thirdPlace: 20 }, prizeRanges: [] },
           drawDate: w.draw_date || '',
           startDate: wStart,
           endDate: w.end_date ? new Date(w.end_date) : wStart,

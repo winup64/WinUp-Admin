@@ -31,9 +31,9 @@ const CreateWeeklyRafflesModal: React.FC<CreateWeeklyRafflesModalProps> = ({
   // Configuración de ganadores y Top 3
   const [winnersCount, setWinnersCount] = useState<number>(1);
   const [maxParticipantsSelectedWeeks, setMaxParticipantsSelectedWeeks] = useState<number | null>(null);
-  const [top1, setTop1] = useState<number>(30);
-  const [top2, setTop2] = useState<number>(20);
-  const [top3, setTop3] = useState<number>(15);
+  const [top1, setTop1] = useState<number>(50);
+  const [top2, setTop2] = useState<number>(30);
+  const [top3, setTop3] = useState<number>(20);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Limpiar estado cuando se abre el modal
@@ -48,9 +48,9 @@ const CreateWeeklyRafflesModal: React.FC<CreateWeeklyRafflesModalProps> = ({
       setValidationErrors({});
       setWinnersCount(1);
       setMaxParticipantsSelectedWeeks(null);
-      setTop1(30);
-      setTop2(20);
-      setTop3(15);
+      setTop1(50);
+      setTop2(30);
+      setTop3(20);
       setIsSubmitting(false);
     }
   }, [isOpen]);
