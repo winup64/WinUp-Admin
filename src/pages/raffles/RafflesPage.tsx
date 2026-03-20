@@ -29,8 +29,10 @@ import EditWeeklyRaffleModal from '../../components/raffles/EditWeeklyRaffleModa
 import ProductRaffleDrawModal from '../../components/raffles/ProductRaffleDrawModal';
 import ProductRaffleResultsModal from '../../components/raffles/ProductRaffleResultsModal';
 import PaymentManagementModal from '../../components/raffles/PaymentManagementModal';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 const RafflesPage: React.FC = () => {
+  const { showError } = useNotifications();
   // Helper para formatear fechas sin conversión de timezone
   const formatDateWithoutTimezone = (dateString: string): string => {
     if (!dateString) return '—';
@@ -442,26 +444,23 @@ const RafflesPage: React.FC = () => {
             await createRaffleMutation.mutateAsync(payload as any);
             done = true;
             break;
-          } catch (e: any) {
-            // Solo reintentar en errores de red o servidor (5xx), no en errores de validación (4xx)
-            const isRetryable = !e?.response?.status || e?.response?.status >= 500;
-            if (attempt < 3 && isRetryable) {
-              await new Promise((r) => setTimeout(r, 400 * attempt));
-            } else {
-              // Si es un error de validación (4xx) o último intento, lanzar el error
-              throw e;
+        } catch (e: any) {
+              const isRetryable = !e?.response?.status || e?.response?.status >= 500;
+              if (attempt < 3 && isRetryable) {
+                await new Promise((r) => setTimeout(r, 400 * attempt));
+              } else {
+                const msg = e?.response?.data?.message || e?.message || 'No se pudo crear el sorteo semanal';
+                showError('Error al crear sorteo semanal', msg);
+                throw e;
+              }
             }
           }
-        }
-        // si falla, dejamos que el refetch posterior muestre estado real
         if (!done) {
           // opcional: log local
-          // console.warn('Fallo al crear sorteo semanal', w.name);
         }
       }
-      // No necesita refreshRaffles, las mutations invalidan automáticamente
     } catch (e) {
-      
+      // Error ya mostrado en el catch interno
     }
   };
 
@@ -497,9 +496,9 @@ const RafflesPage: React.FC = () => {
       // Cerrar modal solo si fue exitoso
       setShowCreateProductModal(false);
       setSelectedProductRaffle(null);
-    } catch (error) {
-      // Si hay error, el modal permanece abierto
-      console.error('Error al guardar sorteo:', error);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'No se pudo guardar el sorteo';
+      showError('Error al guardar sorteo', msg);
     }
   };
 
@@ -667,7 +666,12 @@ const RafflesPage: React.FC = () => {
         await createRaffleMutation.mutateAsync(payload);
       }
       // No necesita refreshRaffles, las mutations invalidan automáticamente
-    } catch (e) {
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'No se pudo guardar el sorteo mensual';
+      showError('Error al guardar sorteo mensual', msg);
+      setShowCreateMonthlyModal(false);
+      setSelectedMonthlyRaffle(null);
+      return;
     }
 
     setShowCreateMonthlyModal(false);
@@ -809,8 +813,9 @@ const RafflesPage: React.FC = () => {
         weeklyRaffles: monthly.weeklyRaffles.map(w => w.id === updated.id ? updated : w)
       })));
       setSelectedRaffle(null);
-    } catch (error) {
-      console.error('Error al actualizar sorteo semanal:', error);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'No se pudo actualizar el sorteo semanal';
+      showError('Error al actualizar sorteo semanal', msg);
       throw error;
     }
   };
@@ -833,12 +838,8 @@ const RafflesPage: React.FC = () => {
       setShowDeleteModal(false);
       setRaffleToDelete(null);
     } catch (error: any) {
-      console.error({
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data
-      });
-      // Cerrar modal incluso si hay error
+      const msg = error?.response?.data?.message || error?.message || 'No se pudo eliminar el sorteo';
+      showError('Error al eliminar', msg);
       setShowDeleteModal(false);
       setRaffleToDelete(null);
     }
